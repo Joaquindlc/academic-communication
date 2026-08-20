@@ -1,0 +1,32 @@
+# Byte-compiled / Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Enviroments
+venv/
+.venv/
+env/
+env
+
+# Enviroment variabls & secrets
+.env
+*.env
+
+# SQLite DataBase
+data/*.db
+data/*.sqLite
+data/*.sqLite3
+
+# Playwright & Session State
+data/playwright/
+*.json
+!app/**/*.json
+
+# IDEs & System Files
+.vscode/
+.idea/
+.DS_Store
+*.log
+logs/
