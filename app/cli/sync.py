@@ -7,6 +7,7 @@ from app.sources.campus import CampusSourceConnector, SessionExpiredException
 from app.services.ingestion import IngestionService
 from app.services.notifier import TelegramNotifierService
 
+# Configuración básica de logs para visibilidad en systemd journalctl
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
@@ -14,16 +15,23 @@ logging.basicConfig(
 logger = logging.getLogger("cli.sync")
 
 
-async def run_sync_pipeline():
-    """Ejecuta la extracción, almacenamiento y despacho de notificaciones."""
+async def run_sync_pipeline() -> bool:
+    """
+    Ejecuta el pipeline completo de sincronización:
+    1. Extracción vía Playwright (Campus INFD).
+    2. Persistencia y deduplicación en SQLite.
+    3. Notificación de eventos pendientes a Telegram.
+    """
     logger.info("Iniciando pipeline de sincronización académica...")
 
     async with AsyncSessionLocal() as session:
         try:
+            # 1. Scrapeo e Ingesta
             connector = CampusSourceConnector()
             ingestion_service = IngestionService(session)
             new_count, total_scraped = await ingestion_service.process_connector(connector)
 
+            # 2. Despacho por Telegram
             notifier = TelegramNotifierService()
             sent_count = await notifier.notify_pending_events(session)
 
