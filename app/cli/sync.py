@@ -7,13 +7,12 @@ from app.sources.campus import CampusSourceConnector, SessionExpiredException
 from app.services.ingestion import IngestionService
 from app.services.notifier import TelegramNotifierService
 
-# Configuración básica de logs para visibilidad en systemd journalctl
+# Configuración básica de logs para visibilidad en systemd journalctl asd
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
 logger = logging.getLogger("cli.sync")
-
 
 async def run_sync_pipeline() -> bool:
     """
