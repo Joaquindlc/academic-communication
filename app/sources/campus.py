@@ -6,7 +6,7 @@ from urllib.parse import parse_qs, urlparse, urljoin
 
 from playwright.async_api import async_playwright, BrowserContext, Page
 
-from app.config import settings
+from app.core.config import settings
 from app.sources.base import SourceConnector, SourceEventData
 
 logger = logging.getLogger(__name__)
