@@ -7,9 +7,8 @@ from googleapiclient.discovery import build
 SCOPES = [
     'https://www.googleapis.com/auth/classroom.courses.readonly',
     'https://www.googleapis.com/auth/classroom.announcements.readonly',
-    'https://www.googleapis.com/auth/classroom.coursework.me.readonly',
+    'https://www.googleapis.com/auth/classroom.coursework.me.readonly'
 ]
-
 
 def main():
     creds = None
@@ -21,29 +20,36 @@ def main():
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES
+                'credentials.json', 
+                SCOPES,
+                redirect_uri='https://oauth2.googleapis.com/token'
             )
-            # En servidores remotos sin navegador gráfico, usamos console flow o un puerto local expuesto
-            creds = flow.run_local_server(
-                port=8080, open_browser=False
-            )
+            
+            auth_url, _ = flow.authorization_url(prompt='consent')
+
+            print("\n1. Copiá y abrí esta URL en tu navegador de Windows:\n")
+            print(auth_url)
+            print("\n" + "="*50)
+            
+            code = input("\n2. Pegá el código que te dio Google acá: ")
+            flow.fetch_token(code=code)
+            creds = flow.credentials
 
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
 
     service = build('classroom', 'v1', credentials=creds)
 
-    print('Conectando a Google Classroom...')
+    print("\nConectando a Google Classroom...")
     results = service.courses().list(courseStates=['ACTIVE']).execute()
     courses = results.get('courses', [])
 
     if not courses:
-        print('No se encontraron cursos activos.')
+        print("No se encontraron cursos activos.")
     else:
-        print('\n--- Cursos Activos Encontrados ---')
+        print("\n--- Cursos Activos Encontrados ---")
         for course in courses:
             print(f"• {course['name']} (ID: {course['id']})")
-
 
 if __name__ == '__main__':
     main()
