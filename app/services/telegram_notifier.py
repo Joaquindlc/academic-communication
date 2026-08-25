@@ -15,7 +15,6 @@ class TelegramNotifierService(BaseNotifierService):
 
     def format_message(self, event: SourceEvent) -> str:
         """Aplica formato HTML para las notificaciones de Telegram."""
-        title = f"📌 <b>{event.title}</b>\n" if event.title else ""
         course = f"📚 <b>{event.course}</b>\n" if event.course else ""
         content = f"\n{event.content}\n" if event.content else ""
         url = (
@@ -23,8 +22,9 @@ class TelegramNotifierService(BaseNotifierService):
             if event.source_url
             else ""
         )
+        title = f"📌 <b>{event.title}</b>\n" if event.title else ""
 
-        return f"{course}{title}{content}{url}"
+        return f"{course}{url}{content}{title}"
 
     async def send_message(self, target_id: str, message_text: str) -> bool:
         if not self.bot_token or not target_id:
