@@ -25,6 +25,10 @@ data/playwright/
 *.json
 !app/**/*.json
 
+# Archivos JSON
+credentials.json
+token.json
+
 # IDEs & System Files
 .vscode/
 .idea/
