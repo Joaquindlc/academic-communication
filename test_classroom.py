@@ -20,7 +20,20 @@ def main():
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_local_server(port=8080, open_browser=False)
+            flow.redirect_uri = 'http://localhost:8080/'
+            
+            auth_url, _ = flow.authorization_url(prompt='consent')
+
+            print("\n1. Copiá y abrí esta URL en tu navegador de Windows:\n")
+            print(auth_url)
+            print("\n" + "="*60)
+            print("2. Después de autorizar, la página mostrará 'No se puede acceder a este sitio web'.")
+            print("   Copiá la URL COMPLETA que quedó en la barra de direcciones de tu navegador.")
+            print("="*60 + "\n")
+            
+            auth_response = input("3. Pegá la URL completa acá: ").strip()
+            flow.fetch_token(authorization_response=auth_response)
+            creds = flow.credentials
 
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
