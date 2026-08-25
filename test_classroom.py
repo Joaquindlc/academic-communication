@@ -19,21 +19,8 @@ def main():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', 
-                SCOPES,
-                redirect_uri='https://oauth2.googleapis.com/token'
-            )
-            
-            auth_url, _ = flow.authorization_url(prompt='consent')
-
-            print("\n1. Copiá y abrí esta URL en tu navegador de Windows:\n")
-            print(auth_url)
-            print("\n" + "="*50)
-            
-            code = input("\n2. Pegá el código que te dio Google acá: ")
-            flow.fetch_token(code=code)
-            creds = flow.credentials
+            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+            creds = flow.run_local_server(port=8080, open_browser=False)
 
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
