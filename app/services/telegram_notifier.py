@@ -17,12 +17,12 @@ class TelegramNotifierService(BaseNotifierService):
         """Aplica formato HTML para las notificaciones de Telegram."""
         title = f"📌 <b>{event.title}</b>\n" if event.title else ""  
         content = f"\n{event.content}\n" if event.content else ""
+        course = f"📚 <b>{event.course}</b>\n" if event.course else ""
         url = (
             f"\n🔗 <a href='{event.source_url}'>Ver en el Campus</a>"
             if event.source_url
             else ""
         )
-        course = f"📚 <b>{event.course}</b>\n" if event.course else ""
         
 
         return f"{title}{content}{url}{course}"
