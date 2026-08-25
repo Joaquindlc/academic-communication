@@ -13,6 +13,7 @@ env
 # Enviroment variabls & secrets
 .env
 *.env
+.env.example
 
 # SQLite DataBase
 data/*.db
