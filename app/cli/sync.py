@@ -8,6 +8,7 @@ from app.services.ingestion import IngestionService
 from app.services.notifier import orchestrator
 from app.services.telegram_notifier import TelegramNotifierService
 from app.sources.campus import CampusSourceConnector, SessionExpiredException
+from app.sources.classroom import ClassroomConnector
 
 # Configuración básica de logs para visibilidad en systemd journalctl
 logging.basicConfig(
@@ -20,7 +21,7 @@ logger = logging.getLogger("cli.sync")
 async def run_sync_pipeline() -> bool:
     """
     Ejecuta el pipeline completo de sincronización:
-    1. Extracción vía Playwright (Campus INFD).
+    1. Extracción multicanal (Campus INFD vía Playwright + Google Classroom API).
     2. Persistencia y deduplicación en SQLite.
     3. Notificación de eventos pendientes a los canales activos (Telegram/WhatsApp).
     """
@@ -28,19 +29,28 @@ async def run_sync_pipeline() -> bool:
 
     async with AsyncSessionLocal() as session:
         try:
-            # 1. Scrapeo e Ingesta
-            connector = CampusSourceConnector()
             ingestion_service = IngestionService(session)
-            new_count, total_scraped = (
-                await ingestion_service.process_connector(connector)
-            )
 
-            # 2. Despacho Multi-canal vía Orquestador
+            # 1. Scrapeo e Ingesta: Campus INFD
+            logger.info("Ejecutando conector Campus INFD...")
+            campus_connector = CampusSourceConnector()
+            campus_new, campus_total = await ingestion_service.process_connector(campus_connector)
+
+            # 2. Ingesta: Google Classroom
+            logger.info("Ejecutando conector Google Classroom...")
+            classroom_connector = ClassroomConnector(token_path="token.json")
+            classroom_new, classroom_total = await ingestion_service.process_connector(classroom_connector)
+
+            total_new = campus_new + classroom_new
+            total_scraped = campus_total + classroom_total
+
+            # 3. Despacho Multi-canal vía Orquestador
             sent_count = await orchestrator.notify_pending_events(session)
 
             logger.info(
                 f"Sincronización finalizada exitosamente. "
-                f"Extraídos: {total_scraped} | Nuevos guardados: {new_count} | Eventos procesados: {sent_count}"
+                f"Extraídos: {total_scraped} (Campus: {campus_total}, Classroom: {classroom_total}) | "
+                f"Nuevos guardados: {total_new} | Eventos procesados: {sent_count}"
             )
             return True
 

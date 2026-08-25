@@ -18,12 +18,19 @@ class TelegramNotifierService(BaseNotifierService):
         title = f"📌 <b>{event.title}</b>\n" if event.title else ""  
         content = f"\n{event.content}\n\n" if event.content else ""
         course = f"📚 <b>{event.course}</b>\n" if event.course else ""
+        
+        # Etiqueta dinámica según el origen del evento
+        label = (
+            "Ver en Google Classroom" 
+            if event.source == "classroom" 
+            else "Ver en el Campus"
+        )
+        
         url = (
-            f"\n🔗 <a href='{event.source_url}'>Ver en el Campus</a>"
+            f"\n🔗 <a href='{event.source_url}'>{label}</a>"
             if event.source_url
             else ""
         )
-        
 
         return f"{title}{content}{course}{url}"
 
