@@ -6,7 +6,7 @@ from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.services.ingestion import IngestionService
 from app.services.notifier import orchestrator
-from app.services.telegram_service import TelegramNotifierService
+from app.services.telegram_notifier import TelegramNotifierService
 from app.sources.campus import CampusSourceConnector, SessionExpiredException
 
 # Configuración básica de logs para visibilidad en systemd journalctl
@@ -47,7 +47,7 @@ async def run_sync_pipeline() -> bool:
         except SessionExpiredException as se:
             logger.critical(f"Sesión del campus expirada: {se}")
             # Mantenemos la alerta técnica directa vía Telegram
-            telegram_service = TelegramNotifierService()
+            telegram_notifier = TelegramNotifierService()
             target_admin = getattr(
                 settings,
                 "TELEGRAM_CHAT_ID",
@@ -55,7 +55,7 @@ async def run_sync_pipeline() -> bool:
             )
 
             if target_admin:
-                await telegram_service.send_admin_alert(
+                await telegram_notifier.send_admin_alert(
                     target_id=target_admin,
                     alert_text=(
                         "⚠️ <b>[CAMPUS INFD] Sesión Expirada</b>\n\n"
