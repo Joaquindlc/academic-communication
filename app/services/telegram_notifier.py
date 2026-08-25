@@ -25,7 +25,7 @@ class TelegramNotifierService(BaseNotifierService):
         )
         
 
-        return f"{title}{content}{url}{course}"
+        return f"{title}{content}{course}{url}"
 
     async def send_message(self, target_id: str, message_text: str) -> bool:
         if not self.bot_token or not target_id:
