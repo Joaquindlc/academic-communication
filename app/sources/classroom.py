@@ -1,12 +1,12 @@
 import os
 import asyncio
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
-from app.sources.base import SourceConnector  # Asegúrate de importar la clase base adecuada
+from app.sources.base import SourceConnector
 from app.core.config import settings
 
 SCOPES = [
@@ -15,7 +15,14 @@ SCOPES = [
     'https://www.googleapis.com/auth/classroom.student-submissions.me.readonly'
 ]
 
-# Estructura de DTO/Schema para que IngestionService pueda leer item.source, item.external_id, etc.
+# IDs de los cursos relevantes del instituto
+ALLOWED_COURSE_IDS = {
+    "797000154356",  # Prácticas Profesionalizantes I - 2026
+    "848241521712",  # Arquitectura de Computadores
+    "848410022242",  # Org y sis 2026
+}
+
+
 class RawEventDTO:
     def __init__(self, source, external_id, event_type, course, title, content, source_url, occurred_at):
         self.source = source
@@ -31,8 +38,9 @@ class RawEventDTO:
 class ClassroomConnector(SourceConnector):
     source_name = "classroom"
 
-    def __init__(self, token_path: str = "token.json"):
+    def __init__(self, token_path: str = "token.json", allowed_course_ids: Optional[set] = None):
         self.token_path = token_path
+        self.allowed_course_ids = allowed_course_ids or ALLOWED_COURSE_IDS
         self._service = None
 
     def _get_service(self):
@@ -55,10 +63,6 @@ class ClassroomConnector(SourceConnector):
         return self._service
 
     async def fetch_events(self) -> List[RawEventDTO]:
-        """
-        Método asíncrono requerido por IngestionService. 
-        Ejecuta las llamadas bloqueantes de google-api-python-client en un thread separado.
-        """
         return await asyncio.to_thread(self._fetch_events_sync)
 
     def _fetch_events_sync(self) -> List[RawEventDTO]:
@@ -70,7 +74,12 @@ class ClassroomConnector(SourceConnector):
         courses = courses_res.get('courses', [])
 
         for course in courses:
-            course_id = course['id']
+            course_id = str(course['id'])
+            
+            # Filtro: Ignorar cursos que no estén en la lista permitida
+            if self.allowed_course_ids and course_id not in self.allowed_course_ids:
+                continue
+
             course_name = course.get('name', 'Curso sin nombre')
 
             # 2. Extraer Anuncios (Tablón)
