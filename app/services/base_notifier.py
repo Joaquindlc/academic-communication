@@ -18,3 +18,5 @@ class BaseNotifierService(ABC):
     async def send_admin_alert(self, target_id: str, alert_text: str) -> bool:
         """Envía una alerta técnica directa del sistema (ej: sesión expirada)."""
         pass
+
+    

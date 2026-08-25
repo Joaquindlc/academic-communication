@@ -36,3 +36,8 @@ class WhatsAppNotifierService(BaseNotifierService):
             except Exception as e:
                 logger.error(f"[WHATSAPP] Error de conexión con Baileys: {str(e)}")
                 return False
+
+
+    async def send_admin_alert(self, target_id: str, alert_text: str) -> bool:
+        """Implementación del contrato abstracto para enviar alertas técnicas por WhatsApp."""
+        return await self.send_message(target_id, alert_text)
