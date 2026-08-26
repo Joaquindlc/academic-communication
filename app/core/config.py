@@ -1,8 +1,12 @@
+import json
+import logging
 import os
 from pathlib import Path
+from typing import Optional
 from dotenv import load_dotenv
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 
 class Settings:
@@ -14,13 +18,11 @@ class Settings:
     # --- Configuración Campus INFD ---
     CAMPUS_BASE_URL: str = os.getenv("CAMPUS_BASE_URL", "https://isfdyt210-bue.infd.edu.ar/aula/")
     
-    # Manejo seguro de conversión entera
     try:
         CAMPUS_SYNC_INTERVAL_HOURS: int = int(os.getenv("CAMPUS_SYNC_INTERVAL_HOURS", "12"))
     except ValueError:
         CAMPUS_SYNC_INTERVAL_HOURS: int = 12
 
-    # Rutas de Playwright para cookies/sesión
     STORAGE_STATE_PATH: Path = Path(
         os.getenv("STORAGE_STATE_PATH", "/opt/academic-communication/data/playwright/campus_storage_state.json")
     )
@@ -28,8 +30,22 @@ class Settings:
     # --- Configuración Telegram ---
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
     TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
-    # --- Grupo de Telegram ---
     TELEGRAM_GROUP_CHAT_ID: str = os.getenv("TELEGRAM_GROUP_CHAT_ID", "")
+
+    # --- Mapeo Dinámico de Tópicos desde .env ---
+    @property
+    def COURSE_TOPIC_MAP(self) -> dict[str, int]:
+        raw_json = os.getenv("TELEGRAM_COURSE_TOPIC_CLASSROOM", "{}")
+        try:
+            return json.loads(raw_json)
+        except json.JSONDecodeError as e:
+            logger.error(f"[CONFIG] Error al parsear TELEGRAM_COURSE_TOPIC_CLASSROOM: {e}")
+            return {}
+
+    def get_topic_id(self, course_name: Optional[str]) -> Optional[int]:
+        if not course_name:
+            return None
+        return self.COURSE_TOPIC_MAP.get(course_name)
 
 
 settings = Settings()

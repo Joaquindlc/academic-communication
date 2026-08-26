@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 import logging
 from typing import Dict, List, Tuple
@@ -31,7 +32,6 @@ class NotificationOrchestrator:
     def _get_active_targets(self) -> List[Tuple[str, str]]:
         """
         Retorna la lista de pares (canal, target_id) activos.
-        Por defecto se obtienen desde settings.
         """
         targets = []
 
@@ -72,6 +72,9 @@ class NotificationOrchestrator:
         sent_count = 0
         for event in pending_events:
             event_success = True
+            
+            # Obtener el thread_id correspondiente a la materia del evento
+            thread_id = settings.get_topic_id(event.course)
 
             for channel, target_id in targets:
                 service = self.services.get(channel)
@@ -82,13 +85,32 @@ class NotificationOrchestrator:
                     continue
 
                 formatted_text = service.format_message(event)
-                ok = await service.send_message(target_id, formatted_text)
+
+                # Si es el grupo de Telegram y la materia tiene un tópico configurado, enviamos thread_id
+                if channel == "telegram" and target_id == settings.TELEGRAM_GROUP_CHAT_ID and thread_id:
+                    ok = await service.send_message(
+                        target_id=target_id,
+                        message_text=formatted_text,
+                        thread_id=thread_id,
+                    )
+                else:
+                    ok = await service.send_message(
+                        target_id=target_id,
+                        message_text=formatted_text,
+                    )
+
                 if not ok:
                     event_success = False
+
+                # Rate limiting suave entre envíos de un mismo evento
+                await asyncio.sleep(0.7)
 
             if event_success:
                 event.processed_at = datetime.now(timezone.utc)
                 sent_count += 1
+
+            # Pausa de 1 segundo entre eventos para no saturar las APIs
+            await asyncio.sleep(2.3)
 
         if sent_count > 0:
             await session.commit()
