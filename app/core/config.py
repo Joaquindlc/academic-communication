@@ -45,14 +45,14 @@ class Settings:
     def get_topic_id(self, course_name: Optional[str]) -> Optional[int]:
         if not course_name:
             return None
-            
-        course_clean = course_name.lower()
-        
-        # Busca si alguna de tus palabras clave está dentro del nombre que trajo el scraper
+
+        clean_course = course_name.strip().lower()
+
+        # Búsqueda por coincidencia parcial (soporta variaciones leves en el nombre)
         for key, thread_id in self.COURSE_TOPIC_MAP.items():
-            if key.lower() in course_clean:
+            if key.strip().lower() in clean_course or clean_course in key.strip().lower():
                 return thread_id
-                
+
         return None
 
 
