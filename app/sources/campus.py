@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from pathlib import Path
 from typing import List
 from datetime import datetime, timezone
@@ -45,8 +46,37 @@ class CampusSourceConnector(SourceConnector):
         for key in ["id_actividad", "wid_unidad", "wIdCategoria", "id_noticia", "id"]:
             if key in query_params:
                 return f"campus_{key}_{query_params[key][0]}"
-                
+
         return f"campus_evt_{int(datetime.now(timezone.utc).timestamp())}_{index}"
+
+    async def _load_all_events(self, page: Page) -> None:
+        """
+        Hace clic repetidamente en 'Mostrar más' hasta que aparezca el mensaje de fin
+        o el botón ya no esté disponible.
+        """
+        button_selector = "text='Mostrar más'"
+        end_text_selector = "text='No hay más sucesos recientes.'"
+
+        logger.info("[CAMPUS] Desplegando el historial completo de sucesos...")
+
+        while True:
+            # 1. Comprobar si ya llegamos al final del listado
+            if await page.locator(end_text_selector).is_visible():
+                logger.info("[CAMPUS] Historial totalmente desplegado ('No hay más sucesos recientes').")
+                break
+
+            btn = page.locator(button_selector)
+            if await btn.is_visible():
+                try:
+                    await btn.click()
+                    # Breve pausa para permitir la inyección AJAX de nuevos nodos en el DOM
+                    await asyncio.sleep(1.2)
+                except Exception as click_err:
+                    logger.warning(f"[CAMPUS] Error al hacer clic en 'Mostrar más': {click_err}")
+                    break
+            else:
+                logger.info("[CAMPUS] Botón 'Mostrar más' ya no está visible.")
+                break
 
     async def fetch_events(self) -> List[SourceEventData]:
         self._verify_storage_state()
@@ -64,7 +94,7 @@ class CampusSourceConnector(SourceConnector):
             try:
                 target_url = urljoin(self.base_url, "acceso.cgi")
                 logger.info(f"Conectando al Campus INFD en {target_url}...")
-                
+
                 await page.goto(
                     target_url,
                     wait_until="domcontentloaded",
@@ -78,9 +108,14 @@ class CampusSourceConnector(SourceConnector):
                     )
 
                 await page.wait_for_selector("ul.lista_sucesos, #Sucesos", timeout=10000)
+
+                # Desplegar todo el contenido oculto antes de hacer la recolección
+                await self._load_all_events(page)
+
+                # Consulta de nodos tras la expansión completa del DOM
                 items = await page.query_selector_all("ul.lista_sucesos li.suceso")
-                
-                logger.info(f"[CAMPUS] Se detectaron {len(items)} sucesos en el panel de novedades.")
+
+                logger.info(f"[CAMPUS] Se detectaron {len(items)} sucesos en total tras desplegar el historial.")
 
                 for idx, item in enumerate(items):
                     try:
