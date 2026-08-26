@@ -35,11 +35,11 @@ class Settings:
     # --- Mapeo Dinámico de Tópicos desde .env ---
     @property
     def COURSE_TOPIC_MAP(self) -> dict[str, int]:
-        raw_json = os.getenv("TELEGRAM_COURSE_TOPIC_CLASSROOM", "{}")
+        raw_json = os.getenv("TELEGRAM_COURSE_TOPIC_MAP", "{}")
         try:
             return json.loads(raw_json)
         except json.JSONDecodeError as e:
-            logger.error(f"[CONFIG] Error al parsear TELEGRAM_COURSE_TOPIC_CLASSROOM: {e}")
+            logger.error(f"[CONFIG] Error al parsear TELEGRAM_COURSE_TOPIC_MAP: {e}")
             return {}
 
     def get_topic_id(self, course_name: Optional[str]) -> Optional[int]:
